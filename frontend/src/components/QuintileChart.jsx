@@ -15,6 +15,8 @@ import {
   ReferenceLine,
 } from 'recharts'
 import SourceBadge from './SourceBadge'
+import MetricNote from './MetricNote'
+import { formatValue, formatAxisTick, unitLabel } from '../format'
 
 // Matches QUINTILE_META in the backend.
 export const QUINTILE_COLORS = {
@@ -46,10 +48,15 @@ export default function QuintileChart({
   data,
   source,
   unit = '',
+  unitKey,
+  metricInfo,       // { what, how } from GET /metric-info
+  metricName,       // the measure the quintiles refer to, e.g. "Under-5 mortality"
   height = 320,
 }) {
   const [mode, setMode] = useState('compare')
   const [year, setYear] = useState(null)
+  const u = unitKey || unit
+  const unitName = unitLabel(u)
 
   const quintiles = useMemo(
     () => (data?.series || []).filter((s) => s.code !== 'TOTAL'),
@@ -192,10 +199,11 @@ export default function QuintileChart({
               tick={{ fontSize: 12 }}
               tickLine={{ stroke: '#e5e7eb' }}
               domain={[0, 'auto']}
+              tickFormatter={(v) => formatAxisTick(v, u)}
               label={
-                unit
+                unitName
                   ? {
-                      value: unit,
+                      value: unitName,
                       angle: -90,
                       position: 'insideLeft',
                       style: { fontSize: 11 },
@@ -209,9 +217,9 @@ export default function QuintileChart({
                 const { low, high } = props.payload
                 const ci =
                   low != null && high != null
-                    ? ` (95% CI ${low.toFixed(1)}–${high.toFixed(1)})`
+                    ? ` (95% CI ${formatValue(low, u)}–${formatValue(high, u)})`
                     : ''
-                return [`${Number(value).toFixed(1)}${ci}`, 'Rate']
+                return [`${formatValue(value, u)}${ci}`, metricName || 'Value']
               }}
               labelFormatter={(label) => `${label} — ${activeYear}`}
             />
@@ -253,10 +261,11 @@ export default function QuintileChart({
               tick={{ fontSize: 12 }}
               tickLine={{ stroke: '#e5e7eb' }}
               domain={[0, 'auto']}
+              tickFormatter={(v) => formatAxisTick(v, u)}
               label={
-                unit
+                unitName
                   ? {
-                      value: unit,
+                      value: unitName,
                       angle: -90,
                       position: 'insideLeft',
                       style: { fontSize: 11 },
@@ -266,10 +275,7 @@ export default function QuintileChart({
             />
             <Tooltip
               contentStyle={tooltipStyle}
-              formatter={(value, name) => [
-                `${Number(value).toFixed(1)} ${unit}`,
-                name,
-              ]}
+              formatter={(value, name) => [formatValue(value, u), name]}
             />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             {quintiles.map((s) => (
@@ -301,9 +307,16 @@ export default function QuintileChart({
       </ResponsiveContainer>
 
       <p className="text-xs text-gray-400 mt-3">
+        {metricName ? (
+          <span className="text-gray-500">
+            Quintiles of <span className="font-medium text-gray-600">{metricName}</span>
+            {unitName ? ` (${unitName})` : ''}.{' '}
+          </span>
+        ) : null}
         Q1 = poorest quintile, Q5 = richest. Shaded whiskers show the WHO 95%
         confidence interval. Dashed line marks the national total for the same year.
       </p>
+      <MetricNote info={metricInfo} />
     </div>
   )
 }

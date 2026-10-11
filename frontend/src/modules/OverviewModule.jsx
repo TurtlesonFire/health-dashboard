@@ -2,7 +2,20 @@ import React, { useEffect, useState } from 'react'
 import TrendChart from '../components/TrendChart'
 import StatCard from '../components/StatCard'
 import QuintileChart from '../components/QuintileChart'
-import { getIndicatorData, getIndicatorQuintiles, SEX_BOTH, bothSexesSeries } from '../api'
+import {
+  getIndicatorData,
+  getIndicatorQuintiles,
+  getMetricInfo,
+  SEX_BOTH,
+  bothSexesSeries,
+} from '../api'
+import { formatValue, unitLabel } from '../format'
+
+// The measure the wealth-quintile view disaggregates. Named explicitly so the
+// equity cards and the chart caption state what they refer to.
+const U5MR_CODE = 'MDG_0000000007'
+const U5MR_NAME = 'Under-5 mortality rate'
+const U5MR_UNIT = 'per_1000'
 
 export default function OverviewModule() {
   const [lifeExpectancy, setLifeExpectancy] = useState(null)
@@ -11,6 +24,7 @@ export default function OverviewModule() {
   const [mmr, setMmr] = useState(null)
   const [imr, setImr] = useState(null)
   const [u5mrQuintiles, setU5mrQuintiles] = useState(null)
+  const [metricInfo, setMetricInfo] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -18,15 +32,16 @@ export default function OverviewModule() {
     async function loadData() {
       try {
         setLoading(true)
-        const [le, hale, u5, mmrResp, imrResp, u5q] = await Promise.all([
+        const [le, hale, u5, mmrResp, imrResp, u5q, info] = await Promise.all([
           getIndicatorData('WHOSIS_000001'),
           getIndicatorData('WHOSIS_000002'),
-          getIndicatorData('MDG_0000000007'),
+          getIndicatorData(U5MR_CODE),
           getIndicatorData('MDG_0000000026'),
           getIndicatorData('SP.DYN.IMRT.IN'),
           // Optional: only U5MR carries a wealth-quintile dimension. A 404 here
           // must not take down the rest of the module.
-          getIndicatorQuintiles('MDG_0000000007', { sex: SEX_BOTH }).catch(() => null),
+          getIndicatorQuintiles(U5MR_CODE, { sex: SEX_BOTH }).catch(() => null),
+          getMetricInfo(),
         ])
         // Accept both-sexes rows and null-sex rows (see api.js).
         setLifeExpectancy(bothSexesSeries(le))
@@ -35,6 +50,7 @@ export default function OverviewModule() {
         setMmr(bothSexesSeries(mmrResp))
         setImr(bothSexesSeries(imrResp))
         setU5mrQuintiles(u5q)
+        setMetricInfo(info || {})
       } catch (e) {
         setError(e.message)
       } finally {
@@ -77,6 +93,9 @@ export default function OverviewModule() {
   const poorest = quintileAt('Q1')
   const richest = quintileAt('Q5')
 
+  const info = (code) => metricInfo[code]
+  const u5Unit = unitLabel(U5MR_UNIT)
+
   return (
     <div className="space-y-6">
       <div>
@@ -90,61 +109,77 @@ export default function OverviewModule() {
         {latestLE && (
           <StatCard
             label="Life Expectancy"
-            value={latestLE.value?.toFixed(1)}
+            value={latestLE.value}
             unit="years"
+            unitKey="years"
             color="blue"
           />
         )}
         {latestHALE && (
           <StatCard
             label="Healthy Life Expectancy"
-            value={latestHALE.value?.toFixed(1)}
+            value={latestHALE.value}
             unit="years"
+            unitKey="years"
             color="green"
           />
         )}
         {latestU5MR && (
           <StatCard
             label="Under-5 Mortality"
-            value={latestU5MR.value?.toFixed(1)}
+            value={latestU5MR.value}
             unit="per 1,000"
+            unitKey="per_1000"
             color="orange"
           />
         )}
         {latestIMR && (
           <StatCard
             label="Infant Mortality"
-            value={latestIMR.value?.toFixed(1)}
+            value={latestIMR.value}
             unit="per 1,000"
+            unitKey="per_1000"
             color="purple"
           />
         )}
       </div>
 
       {poorest && richest && u5mrQuintiles?.equity_ratio != null && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <StatCard
-            label={`Poorest quintile (Q1), ${equityYear}`}
-            value={poorest.value?.toFixed(1)}
-            unit="per 1,000"
-            color="red"
-          />
-          <StatCard
-            label={`Richest quintile (Q5), ${equityYear}`}
-            value={richest.value?.toFixed(1)}
-            unit="per 1,000"
-            color="green"
-          />
-          <StatCard
-            label="Equity gap (Q1 ÷ Q5)"
-            value={`${u5mrQuintiles.equity_ratio}×`}
-            unit={
-              u5mrQuintiles.absolute_gap != null
-                ? `+${u5mrQuintiles.absolute_gap} per 1,000`
-                : ''
-            }
-            color="orange"
-          />
+        <div>
+          {/* These cards previously showed bare numbers with no indication of
+              which metric they described. */}
+          <h3 className="text-sm font-semibold text-gray-700 mb-2">
+            Wealth inequality in {U5MR_NAME.toLowerCase()}
+            <span className="font-normal text-gray-500">
+              {' '}— {u5Unit}, {equityYear}
+            </span>
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <StatCard
+              label="Poorest quintile (Q1) — bottom 20% of households"
+              value={poorest.value}
+              unit={u5Unit}
+              unitKey={U5MR_UNIT}
+              color="red"
+            />
+            <StatCard
+              label="Richest quintile (Q5) — top 20% of households"
+              value={richest.value}
+              unit={u5Unit}
+              unitKey={U5MR_UNIT}
+              color="green"
+            />
+            <StatCard
+              label="Equity gap (Q1 ÷ Q5)"
+              value={`${u5mrQuintiles.equity_ratio}×`}
+              hint={
+                u5mrQuintiles.absolute_gap != null
+                  ? `A child in the poorest fifth is ${u5mrQuintiles.equity_ratio}× more likely to die before age 5 than one in the richest — a gap of ${formatValue(u5mrQuintiles.absolute_gap, U5MR_UNIT)} ${u5Unit}.`
+                  : undefined
+              }
+              color="orange"
+            />
+          </div>
         </div>
       )}
 
@@ -154,34 +189,42 @@ export default function OverviewModule() {
           subtitle="Years, both sexes"
           data={lifeExpectancy}
           unit="years"
+          unitKey="years"
           color="#2563eb"
           source="who_gho"
+          metricInfo={info('WHOSIS_000001')}
         />
         <TrendChart
           title="Healthy Life Expectancy (HALE)"
           subtitle="Years, both sexes"
           data={hale}
           unit="years"
+          unitKey="years"
           color="#16a34a"
           source="who_gho"
+          metricInfo={info('WHOSIS_000002')}
         />
         <TrendChart
           title="Under-5 Mortality Rate"
           subtitle="Per 1,000 live births — national total"
           data={u5mr}
           unit="per 1,000"
+          unitKey="per_1000"
           color="#ea580c"
           source="who_gho"
           yDomain={[0, 'auto']}
+          metricInfo={info(U5MR_CODE)}
         />
         <TrendChart
           title="Infant Mortality Rate"
           subtitle="Per 1,000 live births"
           data={imr}
           unit="per 1,000"
+          unitKey="per_1000"
           color="#9333ea"
           source="world_bank"
           yDomain={[0, 'auto']}
+          metricInfo={info('SP.DYN.IMRT.IN')}
         />
       </div>
 
@@ -192,6 +235,9 @@ export default function OverviewModule() {
           data={u5mrQuintiles}
           source="who_gho"
           unit="per 1,000"
+          unitKey={U5MR_UNIT}
+          metricName={U5MR_NAME}
+          metricInfo={info(U5MR_CODE)}
         />
       )}
 
@@ -201,9 +247,11 @@ export default function OverviewModule() {
           subtitle="Per 100,000 live births"
           data={mmr}
           unit="per 100,000"
+          unitKey="per_100000"
           color="#dc2626"
           source="who_gho"
           yDomain={[0, 'auto']}
+          metricInfo={info('MDG_0000000026')}
         />
       )}
     </div>

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import TrendChart from '../components/TrendChart'
 import StatCard from '../components/StatCard'
-import { getIndicatorData, bothSexesSeries } from '../api'
+import { getIndicatorData, getMetricInfo, bothSexesSeries } from '../api'
 
 export default function DiseaseBurdenModule() {
   const [tb, setTb] = useState(null)
@@ -9,6 +9,7 @@ export default function DiseaseBurdenModule() {
   const [hiv, setHiv] = useState(null)
   const [ncd, setNcd] = useState(null)
   const [suicide, setSuicide] = useState(null)
+  const [metricInfo, setMetricInfo] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -16,18 +17,20 @@ export default function DiseaseBurdenModule() {
     async function loadData() {
       try {
         setLoading(true)
-        const [tbData, malData, hivData, ncdData, suiData] = await Promise.all([
+        const [tbData, malData, hivData, ncdData, suiData, info] = await Promise.all([
           getIndicatorData('MDG_0000000020'),
           getIndicatorData('MALARIA_CONF_CASES'),
           getIndicatorData('SDGHIV'),
           getIndicatorData('WHS2_131'),
           getIndicatorData('MH_12'),
+          getMetricInfo(),
         ])
         setTb(bothSexesSeries(tbData))
         setMalaria(bothSexesSeries(malData))
         setHiv(bothSexesSeries(hivData))
         setNcd(bothSexesSeries(ncdData))
         setSuicide(bothSexesSeries(suiData))
+        setMetricInfo(info || {})
       } catch (e) {
         setError(e.message)
       } finally {
@@ -59,6 +62,8 @@ export default function DiseaseBurdenModule() {
   const latestNCD = ncd?.[ncd.length - 1]
   const latestSuicide = suicide?.[suicide.length - 1]
 
+  const info = (code) => metricInfo[code]
+
   return (
     <div className="space-y-6">
       <div>
@@ -72,32 +77,36 @@ export default function DiseaseBurdenModule() {
         {latestTB && (
           <StatCard
             label="TB Incidence"
-            value={latestTB.value?.toFixed(1)}
+            value={latestTB.value}
             unit="per 100,000"
+            unitKey="per_100000"
             color="blue"
           />
         )}
         {latestHIV && (
           <StatCard
             label="New HIV Infections"
-            value={latestHIV.value?.toFixed(1)}
+            value={latestHIV.value}
             unit="per 1,000"
+            unitKey="per_1000"
             color="red"
           />
         )}
         {latestNCD && (
           <StatCard
             label="NCD Mortality"
-            value={latestNCD.value?.toFixed(1)}
+            value={latestNCD.value}
             unit="per 100,000"
+            unitKey="per_100000"
             color="purple"
           />
         )}
         {latestSuicide && (
           <StatCard
             label="Suicide Rate"
-            value={latestSuicide.value?.toFixed(1)}
+            value={latestSuicide.value}
             unit="per 100,000"
+            unitKey="per_100000"
             color="orange"
           />
         )}
@@ -109,36 +118,43 @@ export default function DiseaseBurdenModule() {
           subtitle="Per 100,000 population per year"
           data={tb}
           unit="per 100,000"
+          unitKey="per_100000"
           color="#2563eb"
           source="who_gho"
           yDomain={[0, 'auto']}
+          metricInfo={info('MDG_0000000020')}
         />
         <TrendChart
           title="Confirmed Malaria Cases"
           subtitle="Total reported cases"
           data={malaria}
-          unit="cases"
+          unitKey="count"
           color="#16a34a"
           source="who_gho"
           yDomain={[0, 'auto']}
+          metricInfo={info('MALARIA_CONF_CASES')}
         />
         <TrendChart
           title="New HIV Infections"
           subtitle="Per 1,000 uninfected population"
           data={hiv}
           unit="per 1,000"
+          unitKey="per_1000"
           color="#dc2626"
           source="who_gho"
           yDomain={[0, 'auto']}
+          metricInfo={info('SDGHIV')}
         />
         <TrendChart
           title="NCD Mortality Rate"
           subtitle="Age-standardized, per 100,000 population"
           data={ncd}
           unit="per 100,000"
+          unitKey="per_100000"
           color="#9333ea"
           source="who_gho"
           yDomain={[0, 'auto']}
+          metricInfo={info('WHS2_131')}
         />
       </div>
 
@@ -148,9 +164,11 @@ export default function DiseaseBurdenModule() {
           subtitle="Age-standardized, per 100,000 population"
           data={suicide}
           unit="per 100,000"
+          unitKey="per_100000"
           color="#ea580c"
           source="who_gho"
           yDomain={[0, 'auto']}
+          metricInfo={info('MH_12')}
         />
       )}
     </div>

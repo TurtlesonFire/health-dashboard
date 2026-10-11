@@ -7,10 +7,11 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
   ReferenceLine,
 } from 'recharts'
 import SourceBadge from './SourceBadge'
+import MetricNote from './MetricNote'
+import { formatValue, formatAxisTick, unitLabel } from '../format'
 
 export default function TrendChart({
   title,
@@ -19,12 +20,17 @@ export default function TrendChart({
   dataKey = 'value',
   xKey = 'year',
   unit = '',
+  unitKey,          // coarse DB unit ('count', 'php', ...) drives formatting
   color = '#2563eb',
   source,
   height = 300,
   yDomain,
   referenceLines = [],
+  metricInfo,       // { what, how } from GET /metric-info
 }) {
+  const u = unitKey || unit
+  const unitName = unitLabel(u)
+
   if (!data || data.length === 0) {
     return (
       <div className="card">
@@ -33,6 +39,7 @@ export default function TrendChart({
         <div className="flex items-center justify-center h-64 text-gray-400">
           No data available
         </div>
+        <MetricNote info={metricInfo} />
       </div>
     )
   }
@@ -58,7 +65,17 @@ export default function TrendChart({
             tick={{ fontSize: 12 }}
             tickLine={{ stroke: '#e5e7eb' }}
             domain={yDomain || ['auto', 'auto']}
-            label={unit ? { value: unit, angle: -90, position: 'insideLeft', style: { fontSize: 11 } } : undefined}
+            tickFormatter={(v) => formatAxisTick(v, u)}
+            label={
+              unitName
+                ? {
+                    value: unitName,
+                    angle: -90,
+                    position: 'insideLeft',
+                    style: { fontSize: 11 },
+                  }
+                : undefined
+            }
           />
           <Tooltip
             contentStyle={{
@@ -67,7 +84,7 @@ export default function TrendChart({
               borderRadius: '8px',
               fontSize: '13px',
             }}
-            formatter={(value) => [`${Number(value).toFixed(1)} ${unit}`, title]}
+            formatter={(value) => [formatValue(value, u), title]}
           />
           {referenceLines.map((rl, i) => (
             <ReferenceLine
@@ -89,7 +106,7 @@ export default function TrendChart({
           />
         </LineChart>
       </ResponsiveContainer>
+      <MetricNote info={metricInfo} />
     </div>
   )
 }
-

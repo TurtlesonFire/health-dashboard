@@ -65,6 +65,21 @@ export async function getCategories() {
   return fetchJSON('/categories')
 }
 
+// Plain-language metric descriptions, keyed by indicator code. Static per
+// deploy, so fetch once and cache in module scope — every chart asks for this.
+let metricInfoPromise = null
+export function getMetricInfo() {
+  if (!metricInfoPromise) {
+    metricInfoPromise = fetchJSON('/metric-info').catch((e) => {
+      // A missing blurb must never break a chart.
+      console.warn('metric-info unavailable:', e.message)
+      metricInfoPromise = null
+      return {}
+    })
+  }
+  return metricInfoPromise
+}
+
 export async function getSources() {
   return fetchJSON('/sources')
 }

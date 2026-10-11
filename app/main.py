@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from datetime import date
 
 from app.models import create_db, get_db, Indicator, DataPoint, Region
+from app.metric_info import METRIC_INFO
 
 app = FastAPI(
     title="PH Health Systems Data Dashboard API",
@@ -181,6 +182,16 @@ def get_indicator(
         description=indicator.description,
         data_points=points,
     )
+
+
+@app.get("/metric-info")
+def get_all_metric_info():
+    """Plain-language description of every metric, keyed by indicator code.
+
+    Editorial content (what the metric means, how to use it) that no upstream
+    API provides. Static per deploy, so the frontend fetches it once and caches.
+    """
+    return METRIC_INFO
 
 
 @app.get("/data/{indicator_code}", response_model=List[DataPointResponse])

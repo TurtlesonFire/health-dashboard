@@ -257,6 +257,15 @@ class WorldBankSource(DataSource):
             "category": "context",
             "unit": "usd",
         },
+        # Same concept in local currency. For the Philippines the World Bank's
+        # LCU *is* the peso, so this is the official peso series — better than
+        # converting the USD figure client-side, which would introduce
+        # exchange-rate arithmetic that drifts year to year.
+        "NY.GDP.PCAP.CN": {
+            "name": "GDP per capita (current Philippine pesos)",
+            "category": "context",
+            "unit": "php",
+        },
         "SP.POP.65UP.TO.ZS": {
             "name": "Population ages 65 and above (% of total population)",
             "category": "context",
