@@ -1,6 +1,6 @@
 # Static build for deployment: pre-render the API, then build the frontend.
 #
-# The data files land in frontend/public/api/ (gitignored — they are derived
+# The data files land in frontend/public/api/ (gitignored - they are derived
 # from the ETL database, which is itself derived from the public APIs), and
 # Vite copies them into dist/ verbatim.
 
@@ -40,4 +40,8 @@ Remove-Item Env:\VITE_DATA_MODE
 
 Write-Host ""
 Write-Host "Static site ready: $PROJECT\frontend\dist" -ForegroundColor Green
-Write-Host "Preview locally with:  npx vite preview --outDir dist" -ForegroundColor Green
+Write-Host ""
+Write-Host "Preview it (serve the files directly - vite preview applies the dev proxy):" -ForegroundColor Green
+Write-Host "  cd $PROJECT\frontend\dist"
+Write-Host "  $PYTHON -m http.server 4180"
+Write-Host "  then open http://localhost:4180"
