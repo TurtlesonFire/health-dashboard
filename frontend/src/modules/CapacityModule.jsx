@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import TrendChart from '../components/TrendChart'
 import StatCard from '../components/StatCard'
-import { getIndicatorData } from '../api'
-
-const SEX_BOTH = 'SEX_BTSX'
+import { getIndicatorData, bothSexesSeries } from '../api'
 
 export default function CapacityModule() {
   const [beds, setBeds] = useState(null)
@@ -25,11 +23,11 @@ export default function CapacityModule() {
           getIndicatorData('SH.XPD.OOPC.CH.ZS'),
           getIndicatorData('UHC_INDEX_REPORTED'),
         ])
-        setBeds(b.filter(d => d.sex === SEX_BOTH).sort((a, b) => a.year - b.year))
-        setPhysicians(p.filter(d => d.sex === SEX_BOTH).sort((a, b) => a.year - b.year))
-        setHealthExpGDP(he.filter(d => d.sex === SEX_BOTH).sort((a, b) => a.year - b.year))
-        setOopExp(oop.filter(d => d.sex === SEX_BOTH).sort((a, b) => a.year - b.year))
-        setUhcIndex(uhc.filter(d => d.sex === SEX_BOTH).sort((a, b) => a.year - b.year))
+        setBeds(bothSexesSeries(b))
+        setPhysicians(bothSexesSeries(p))
+        setHealthExpGDP(bothSexesSeries(he))
+        setOopExp(bothSexesSeries(oop))
+        setUhcIndex(bothSexesSeries(uhc))
       } catch (e) {
         setError(e.message)
       } finally {

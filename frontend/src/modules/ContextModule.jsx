@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import TrendChart from '../components/TrendChart'
 import StatCard from '../components/StatCard'
-import { getIndicatorData } from '../api'
-
-const SEX_BOTH = 'SEX_BTSX'
+import { getIndicatorData, bothSexesSeries } from '../api'
 
 export default function ContextModule() {
   const [population, setPopulation] = useState(null)
@@ -25,11 +23,11 @@ export default function ContextModule() {
           getIndicatorData('SH.STA.SMSS.ZS'),
           getIndicatorData('SP.POP.65UP.TO.ZS'),
         ])
-        setPopulation(pop.filter(d => d.sex === SEX_BOTH).sort((a, b) => a.year - b.year))
-        setGdpPerCapita(gdp.filter(d => d.sex === SEX_BOTH).sort((a, b) => a.year - b.year))
-        setWater(w.filter(d => d.sex === SEX_BOTH).sort((a, b) => a.year - b.year))
-        setSanitation(s.filter(d => d.sex === SEX_BOTH).sort((a, b) => a.year - b.year))
-        setAging(a.filter(d => d.sex === SEX_BOTH).sort((a, b) => a.year - b.year))
+        setPopulation(bothSexesSeries(pop))
+        setGdpPerCapita(bothSexesSeries(gdp))
+        setWater(bothSexesSeries(w))
+        setSanitation(bothSexesSeries(s))
+        setAging(bothSexesSeries(a))
       } catch (e) {
         setError(e.message)
       } finally {

@@ -1,5 +1,31 @@
 const API_BASE = '/api'
 
+// Sex dimension in the data.
+//
+// The two upstream APIs disagree on how they express "both sexes":
+//   - WHO GHO sex-disaggregated indicators (life expectancy, U5MR, HIV, NCD,
+//     suicide, tobacco, obesity) send Dim1 = 'SEX_BTSX'.
+//   - Indicators with no sex dimension at all (MMR, UHC index, TB, malaria,
+//     population, GDP, beds, physicians, expenditure, water, sanitation)
+//     come back with sex = null.
+//
+// Filtering on 'SEX_BTSX' alone therefore silently drops every null-sex
+// indicator and renders those charts and stat cards empty. No indicator in
+// this dataset has both forms, so accepting either cannot duplicate years.
+export const SEX_BOTH = 'SEX_BTSX'
+
+export function isBothSexes(row) {
+  // == null covers both null and undefined.
+  return row.sex === SEX_BOTH || row.sex == null
+}
+
+/** Keep both-sexes rows only, oldest year first. */
+export function bothSexesSeries(rows) {
+  return (rows ?? [])
+    .filter(isBothSexes)
+    .sort((a, b) => a.year - b.year)
+}
+
 async function fetchJSON(path) {
   const resp = await fetch(`${API_BASE}${path}`)
   if (!resp.ok) {

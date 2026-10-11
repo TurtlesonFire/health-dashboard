@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import TrendChart from '../components/TrendChart'
 import StatCard from '../components/StatCard'
-import { getIndicatorData } from '../api'
-
-const SEX_BTSX = "SEX_BTSX"
+import { getIndicatorData, bothSexesSeries } from '../api'
 
 export default function DiseaseBurdenModule() {
   const [tb, setTb] = useState(null)
@@ -25,11 +23,11 @@ export default function DiseaseBurdenModule() {
           getIndicatorData('WHS2_131'),
           getIndicatorData('MH_12'),
         ])
-        setTb(tbData.filter(d => d.sex === SEX_BTSX || d.sex === null).sort((a, b) => a.year - b.year))
-        setMalaria(malData.filter(d => d.sex === SEX_BTSX || d.sex === null).sort((a, b) => a.year - b.year))
-        setHiv(hivData.filter(d => d.sex === SEX_BTSX || d.sex === null).sort((a, b) => a.year - b.year))
-        setNcd(ncdData.filter(d => d.sex === SEX_BTSX || d.sex === null).sort((a, b) => a.year - b.year))
-        setSuicide(suiData.filter(d => d.sex === SEX_BTSX || d.sex === null).sort((a, b) => a.year - b.year))
+        setTb(bothSexesSeries(tbData))
+        setMalaria(bothSexesSeries(malData))
+        setHiv(bothSexesSeries(hivData))
+        setNcd(bothSexesSeries(ncdData))
+        setSuicide(bothSexesSeries(suiData))
       } catch (e) {
         setError(e.message)
       } finally {

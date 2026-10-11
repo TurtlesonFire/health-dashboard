@@ -2,9 +2,7 @@ import React, { useEffect, useState } from 'react'
 import TrendChart from '../components/TrendChart'
 import StatCard from '../components/StatCard'
 import QuintileChart from '../components/QuintileChart'
-import { getIndicatorData, getIndicatorQuintiles } from '../api'
-
-const SEX_BOTH = 'SEX_BTSX'
+import { getIndicatorData, getIndicatorQuintiles, SEX_BOTH, bothSexesSeries } from '../api'
 
 export default function OverviewModule() {
   const [lifeExpectancy, setLifeExpectancy] = useState(null)
@@ -30,12 +28,12 @@ export default function OverviewModule() {
           // must not take down the rest of the module.
           getIndicatorQuintiles('MDG_0000000007', { sex: SEX_BOTH }).catch(() => null),
         ])
-        // Filter to both sexes only
-        setLifeExpectancy(le.filter(d => d.sex === SEX_BOTH).sort((a, b) => a.year - b.year))
-        setHale(hale.filter(d => d.sex === SEX_BOTH).sort((a, b) => a.year - b.year))
-        setU5mr(u5.filter(d => d.sex === SEX_BOTH).sort((a, b) => a.year - b.year))
-        setMmr(mmrResp.filter(d => d.sex === SEX_BOTH).sort((a, b) => a.year - b.year))
-        setImr(imrResp.filter(d => d.sex === SEX_BOTH).sort((a, b) => a.year - b.year))
+        // Accept both-sexes rows and null-sex rows (see api.js).
+        setLifeExpectancy(bothSexesSeries(le))
+        setHale(bothSexesSeries(hale))
+        setU5mr(bothSexesSeries(u5))
+        setMmr(bothSexesSeries(mmrResp))
+        setImr(bothSexesSeries(imrResp))
         setU5mrQuintiles(u5q)
       } catch (e) {
         setError(e.message)

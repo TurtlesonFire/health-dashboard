@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import TrendChart from '../components/TrendChart'
 import StatCard from '../components/StatCard'
-import { getIndicatorData } from '../api'
-
-const SEX_BTSX = "SEX_BTSX"
+import { getIndicatorData, bothSexesSeries } from '../api'
 
 export default function RiskFactorsModule() {
   const [tobacco, setTobacco] = useState(null)
@@ -19,8 +17,8 @@ export default function RiskFactorsModule() {
           getIndicatorData('M_Est_tob_curr'),
           getIndicatorData('NCD_BMI_30A'),
         ])
-        setTobacco(tobData.filter(d => d.sex === SEX_BTSX || d.sex === null).sort((a, b) => a.year - b.year))
-        setObesity(obData.filter(d => d.sex === SEX_BTSX || d.sex === null).sort((a, b) => a.year - b.year))
+        setTobacco(bothSexesSeries(tobData))
+        setObesity(bothSexesSeries(obData))
       } catch (e) {
         setError(e.message)
       } finally {
