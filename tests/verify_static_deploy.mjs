@@ -5,10 +5,11 @@
  * the static bundle) against a plain static server, rather than re-implementing
  * its URL logic — a hand-rolled copy would pass while the shipped code is wrong.
  *
- * Run the static server first:
- *   cd frontend/dist-s2 && python -m http.server 4180
+ * Build and serve first:
+ *   cd frontend && VITE_DATA_MODE=static npx vite build
+ *   cd dist && python -m http.server 4180
  */
-const BASE = 'http://localhost:4180'
+const BASE = process.env.STATIC_BASE || 'http://localhost:4180'
 
 let pass = 0
 let fail = 0
@@ -22,7 +23,7 @@ const check = (name, ok, detail = '') => {
 const fs = await import('node:fs')
 const path = await import('node:path')
 
-const ASSETS = 'C:/Users/Asus/health-dashboard/frontend/dist-s2/assets'
+const ASSETS = 'C:/Users/Asus/health-dashboard/frontend/dist/assets'
 const apiChunk = fs.readdirSync(ASSETS).find((f) => /^api-.*\.js$/.test(f))
 const src = fs.readFileSync(path.join(ASSETS, apiChunk), 'utf8')
 
