@@ -1,0 +1,41 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# ---- Node / frontend ----
+node_modules/
+dist/
+dist-verify/
+.vite/
+npm-debug.log*
+yarn-error.log*
+
+# ---- Local data (derived, regenerable) ----
+# The SQLite DB is built from the public WHO GHO + World Bank APIs by
+# `python -m app.etl.pipeline`. It is an artifact, not source — regenerate
+# rather than commit so the repo never carries stale health data.
+data/*.db
+data/*.db-journal
+data/*.db.bak-*
+data/*.sqlite*
+
+# ---- Secrets / local config ----
+# No secrets today (both APIs are keyless), but keep credentials out of git
+# by default so a key added later can never be committed by accident.
+.env
+.env.*
+!.env.example
+
+# ---- OS / editor cruft ----
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*~
