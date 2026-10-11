@@ -26,12 +26,21 @@ data/*.db-journal
 data/*.db.bak-*
 data/*.sqlite*
 
+# Static API export (frontend/public/api/) is likewise derived — see
+# frontend/public/.gitignore.
+
 # ---- Secrets / local config ----
 # No secrets today (both APIs are keyless), but keep credentials out of git
 # by default so a key added later can never be committed by accident.
 .env
 .env.*
 !.env.example
+
+# Vite env files are the exception: VITE_* values are inlined into the client
+# bundle at build time, so they are public by definition and must not carry
+# secrets. Committing them documents the deploy-time configuration.
+!frontend/.env
+!frontend/.env.*
 
 # ---- OS / editor cruft ----
 .DS_Store

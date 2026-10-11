@@ -1,0 +1,4 @@
+# Static export output — derived from the ETL database, which is itself
+# rebuilt from the public APIs. Regenerate with scripts/export_static.py
+# rather than committing.
+api/

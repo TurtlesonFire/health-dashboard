@@ -14,7 +14,11 @@ Both are free and keyless.
 | Frontend | React 18 + Vite + Tailwind CSS + Recharts (port 3000) |
 | Backend | FastAPI + SQLAlchemy + SQLite (port 8000) |
 | ETL | Python, pluggable `DataSource` architecture |
-| Database | `data/health3.db` — 31 indicators, ~1,950 data points |
+| Database | `data/health3.db` — 32 indicators, ~2,020 data points |
+
+The backend is used at **build time** to pre-render the API into static JSON;
+the deployed site is fully static and runs no server. See
+[DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Quick start
 
@@ -68,6 +72,7 @@ intervals, and a multi-year trend per quintile.
 | `GET /indicators/{code}` | One indicator with its data points |
 | `GET /data/{indicator_code}` | Data points (filter by `year`, `region`) |
 | `GET /data/{indicator_code}/quintiles` | Wealth-quintile breakdown (Q1–Q5 + total) |
+| `GET /metric-info` | Plain-language explanation of every metric |
 | `GET /categories` | Indicator categories with counts |
 | `GET /sources` | Data sources and their status |
 
@@ -75,6 +80,15 @@ intervals, and a multi-year trend per quintile.
 wealth-quintile rows by default, so a plain trend returns one value per year.
 Pass `?include_quintiles=true` to include them, or use the dedicated
 `/quintiles` endpoint.
+
+## Deployment
+
+```powershell
+./build-static.ps1        # refresh data -> export API to JSON -> build site
+```
+
+Produces a fully static site in `frontend/dist/` (~223 KB gzipped, no server).
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the architecture and hosting notes.
 
 ## Design principles
 
@@ -88,10 +102,17 @@ Pass `?include_quintiles=true` to include them, or use the dedicated
 ## Tests
 
 ```bash
-node tests/verify_quintile_logic.mjs
+node tests/verify_quintile_logic.mjs       # wealth-quintile data contract
+node tests/verify_fix_and_split.mjs        # sex filter + code-splitting
+node tests/verify_ux_improvements.mjs      # formatting, peso series, blurbs
+node tests/verify_static_deploy.mjs        # static build serves with no backend
 ```
 
-Asserts the wealth-quintile data contract: that Recharts error-bar deltas
-round-trip to the exact confidence-interval bounds, that series ordering is
-poorest→richest, that the cross-section year intersection drops years with
-gaps, and that derived equity metrics match the API.
+`verify_quintile_logic` asserts the wealth-quintile data contract: that Recharts
+error-bar deltas round-trip to the exact confidence-interval bounds, that series
+ordering is poorest→richest, that the cross-section year intersection drops years
+with gaps, and that derived equity metrics match the API.
+
+`verify_static_deploy` requires the built site to be served (see
+[DEPLOYMENT.md](DEPLOYMENT.md)) and confirms every request the app makes
+resolves to a real file with no backend running.

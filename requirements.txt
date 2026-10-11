@@ -1,8 +1,16 @@
-fastapi==0.115.0
-uvicorn==0.30.6
-requests==2.32.3
-pandas==2.2.3
-sqlalchemy==2.0.35
-pydantic==2.9.2
-python-dotenv==1.0.1
-httpx==0.27.2
+# Runtime + ETL dependencies.
+#
+# The ETL fetches from the WHO GHO and World Bank APIs and writes SQLite; the
+# FastAPI app reads it. Both are needed to regenerate data.
+#
+# Dropped: pandas (never imported — ~60 MB of install for nothing) and
+# python-dotenv (never called load_dotenv(), which is why .env was inert).
+fastapi>=0.115,<1
+uvicorn>=0.30,<1
+requests>=2.32,<3
+sqlalchemy>=2.0,<3
+pydantic>=2.9,<3
+
+# Required by fastapi.testclient, which scripts/export_static.py uses to
+# pre-render the API. Not needed by the deployed static site.
+httpx>=0.27,<1
