@@ -10,7 +10,9 @@ env/
 # ---- Node / frontend ----
 node_modules/
 dist/
-dist-verify/
+# Any build output dir, including ad-hoc verification builds
+# (dist-verify, dist-verify2, ...) that must never be committed.
+dist-*/
 .vite/
 npm-debug.log*
 yarn-error.log*
