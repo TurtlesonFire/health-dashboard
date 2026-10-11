@@ -12,7 +12,7 @@ import { join } from 'node:path'
 
 const API = 'http://localhost:8000'
 const SRC = 'C:/Users/Asus/health-dashboard/frontend/src'
-const DIST = 'C:/Users/Asus/health-dashboard/frontend/dist-verify3/assets'
+const DIST = 'C:/Users/Asus/health-dashboard/frontend/dist/assets'
 
 let pass = 0
 let fail = 0
