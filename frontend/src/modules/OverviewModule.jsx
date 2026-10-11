@@ -144,45 +144,6 @@ export default function OverviewModule() {
         )}
       </div>
 
-      {poorest && richest && u5mrQuintiles?.equity_ratio != null && (
-        <div>
-          {/* These cards previously showed bare numbers with no indication of
-              which metric they described. */}
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">
-            Wealth inequality in {U5MR_NAME.toLowerCase()}
-            <span className="font-normal text-gray-500">
-              {' '}— {u5Unit}, {equityYear}
-            </span>
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <StatCard
-              label="Poorest quintile (Q1) — bottom 20% of households"
-              value={poorest.value}
-              unit={u5Unit}
-              unitKey={U5MR_UNIT}
-              color="red"
-            />
-            <StatCard
-              label="Richest quintile (Q5) — top 20% of households"
-              value={richest.value}
-              unit={u5Unit}
-              unitKey={U5MR_UNIT}
-              color="green"
-            />
-            <StatCard
-              label="Equity gap (Q1 ÷ Q5)"
-              value={`${u5mrQuintiles.equity_ratio}×`}
-              hint={
-                u5mrQuintiles.absolute_gap != null
-                  ? `A child in the poorest fifth is ${u5mrQuintiles.equity_ratio}× more likely to die before age 5 than one in the richest — a gap of ${formatValue(u5mrQuintiles.absolute_gap, U5MR_UNIT)} ${u5Unit}.`
-                  : undefined
-              }
-              color="orange"
-            />
-          </div>
-        </div>
-      )}
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <TrendChart
           title="Life Expectancy at Birth"
@@ -227,6 +188,43 @@ export default function OverviewModule() {
           metricInfo={info('SP.DYN.IMRT.IN')}
         />
       </div>
+
+      {poorest && richest && u5mrQuintiles?.equity_ratio != null && (
+        <div>
+          <h3 className="text-sm font-semibold text-gray-700 mb-2">
+            Wealth inequality in {U5MR_NAME.toLowerCase()}
+            <span className="font-normal text-gray-500">
+              {' '}— {u5Unit}, {equityYear}
+            </span>
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <StatCard
+              label="Poorest quintile (Q1) — bottom 20% of households"
+              value={poorest.value}
+              unit={u5Unit}
+              unitKey={U5MR_UNIT}
+              color="red"
+            />
+            <StatCard
+              label="Richest quintile (Q5) — top 20% of households"
+              value={richest.value}
+              unit={u5Unit}
+              unitKey={U5MR_UNIT}
+              color="green"
+            />
+            <StatCard
+              label="Equity gap (Q1 ÷ Q5)"
+              value={`${u5mrQuintiles.equity_ratio}×`}
+              hint={
+                u5mrQuintiles.absolute_gap != null
+                  ? `A child in the poorest fifth is ${u5mrQuintiles.equity_ratio}× more likely to die before age 5 than one in the richest — a gap of ${formatValue(u5mrQuintiles.absolute_gap, U5MR_UNIT)} ${u5Unit}.`
+                  : undefined
+              }
+              color="orange"
+            />
+          </div>
+        </div>
+      )}
 
       {u5mrQuintiles && (
         <QuintileChart
