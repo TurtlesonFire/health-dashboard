@@ -31,6 +31,9 @@ jobs:
 
       - run: pip install -r requirements.txt
 
+      - name: Create data directory
+        run: mkdir -p data
+
       - name: Run ETL
         run: python -m app.etl.pipeline
 

@@ -4,7 +4,10 @@ from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
 import os
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///C:/Users/Asus/health-dashboard/data/health3.db")
+# Resolve the DB path relative to this file, not the working directory, so the
+# same code works locally and in CI (GitHub Actions, etc.).
+_DEFAULT_DB = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "health3.db")
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{_DEFAULT_DB}")
 
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
