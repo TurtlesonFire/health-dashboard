@@ -13,6 +13,9 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    // GitHub Pages serves project sites at /<repo>/, so asset paths must be
+    // prefixed accordingly in the production build. Dev mode serves from root.
+    base: dataMode === 'static' ? '/health-dashboard/' : '/',
     server: {
       port: 3000,
       ...(useProxy

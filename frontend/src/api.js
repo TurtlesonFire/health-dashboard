@@ -10,7 +10,10 @@
 // Both modes expose the same functions and the same response shapes, so no
 // component needs to know which is active.
 const DATA_MODE = import.meta.env.VITE_DATA_MODE || 'api'
-const API_BASE = '/api'
+// In static mode, Vite's base is /health-dashboard/ (set in vite.config.js),
+// so API_BASE becomes /health-dashboard/api. In dev mode base is '/', so
+// API_BASE stays /api. This keeps fetch URLs correct in both modes.
+const API_BASE = import.meta.env.BASE_URL + 'api'
 
 export const IS_STATIC = DATA_MODE === 'static'
 

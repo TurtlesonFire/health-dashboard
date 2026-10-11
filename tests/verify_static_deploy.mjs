@@ -128,6 +128,8 @@ console.log('='.repeat(78))
 // request had gone to :8000 it would have been a cross-origin fetch to a
 // different port, which is not configured anywhere in the bundle.
 check('bundle has no localhost:8000 reference', !src.includes('localhost:8000'))
+check('API_BASE resolves to /health-dashboard/api (subpath deploy)',
+  src.includes('health-dashboard/api'))
 const entry = fs.readdirSync(ASSETS).find((f) => /^index-.*\.js$/.test(f))
 const entrySrc = fs.readFileSync(path.join(ASSETS, entry), 'utf8')
 check('entry chunk has no backend host either',
