@@ -63,8 +63,9 @@ export default function App() {
       <footer className="border-t border-gray-200 bg-white mt-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <p className="text-xs text-gray-400 text-center">
-            Data sources: WHO Global Health Observatory, World Bank Open Data.
-            Built for the Philippine health systems community.
+            Data sources: WHO Global Health Observatory, World Bank Open Data,
+            Philippine Statistics Authority. Built for the Philippine health
+            systems community.
           </p>
         </div>
       </footer>

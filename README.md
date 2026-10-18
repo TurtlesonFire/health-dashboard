@@ -6,7 +6,7 @@ An interactive dashboard for Philippine health systems data from the WHO Global 
 
 [![Verify](https://github.com/TurtlesonFire/health-dashboard/actions/workflows/verify.yml/badge.svg)](https://github.com/TurtlesonFire/health-dashboard/actions/workflows/verify.yml)
 
-**Data sources:** [WHO GHO](https://www.who.int/data/gho) · [World Bank Open Data](https://data.worldbank.org/)
+**Data sources:** [WHO GHO](https://www.who.int/data/gho) · [World Bank Open Data](https://data.worldbank.org/) · [PSA OpenSTAT](https://openstat.psa.gov.ph/)
 
 ---
 
