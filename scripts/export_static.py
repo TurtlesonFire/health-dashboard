@@ -12,6 +12,8 @@ needs to map a request path to "<path>.json" (see frontend/src/api.js):
     GET /indicators                  -> frontend/public/api/indicators.json
     GET /data/{code}                 -> frontend/public/api/data/{code}.json
     GET /data/{code}/quintiles       -> frontend/public/api/data/{code}/quintiles.json
+    GET /data/{code}/regions         -> frontend/public/api/data/{code}/regions.json
+    GET /regions/{code}/causes       -> frontend/public/api/regions/{code}/causes.json
     GET /metric-info                 -> frontend/public/api/metric-info.json
     GET /categories                  -> frontend/public/api/categories.json
     GET /sources                     -> frontend/public/api/sources.json
@@ -54,6 +56,10 @@ def main() -> int:
     args = ap.parse_args()
 
     out: Path = args.out
+    # The all-cause regional indicator is the one that carries every region, so
+    # it is the handle for enumerating regions. Indicator codes are stable
+    # identifiers in this project (the test suites hard-code them too).
+    all_causes_code = "PSA_DEATHS_ALL_CAUSES"
     if out.exists():
         # Stale files from a removed indicator would otherwise linger and be
         # served forever by the static host.
@@ -104,13 +110,57 @@ def main() -> int:
                 write_json(out / "data" / code / "quintiles.json", resp.json()),
             ))
 
+    # --- subnational series ---------------------------------------------
+    # Only PSA indicators carry a regional breakdown today, but probe every
+    # indicator so a future one is picked up automatically — the same
+    # discipline as the quintiles loop above. A 404 is expected, not an error.
+    for ind in indicators:
+        code = ind["code"]
+        resp = client.get(f"/data/{code}/regions")
+        if resp.status_code == 404:
+            continue
+        if resp.status_code != 200:
+            skipped.append(f"/data/{code}/regions ({resp.status_code})")
+            continue
+        written.append((
+            f"/data/{code}/regions",
+            write_json(out / "data" / code / "regions.json", resp.json()),
+        ))
+
+    # --- per-region cause-of-death profiles ----------------------------
+    # Regions are enumerated from the all-cause regional series. These requests
+    # carry no query params, which is what the static build needs: api.js throws
+    # on a parameter it cannot map to a pre-rendered file.
+    try:
+        region_rows = client.get(f"/data/{all_causes_code}/regions").json().get("regions", [])
+    except Exception as e:  # noqa: BLE001 - a probe, not a data source
+        print(f"WARNING: could not enumerate regions for cause profiles: {e}",
+              file=sys.stderr)
+        region_rows = []
+
+    for r in region_rows:
+        rcode = r["region_code"]
+        resp = client.get(f"/regions/{rcode}/causes")
+        if resp.status_code == 404:
+            continue
+        if resp.status_code != 200:
+            skipped.append(f"/regions/{rcode}/causes ({resp.status_code})")
+            continue
+        written.append((
+            f"/regions/{rcode}/causes",
+            write_json(out / "regions" / rcode / "causes.json", resp.json()),
+        ))
+
     total = sum(n for _p, n in written)
     print(f"Exported {len(written)} files to {out}")
     print(f"  total size: {total / 1024:.1f} KB raw")
-
     quintiles = [p for p, _ in written if p.endswith("/quintiles")]
-    print(f"  indicators: {sum(1 for p, _ in written if p.startswith('/data/') and not p.endswith('/quintiles'))}")
+    regional = [p for p, _ in written if p.endswith("/regions")]
+    causes = [p for p, _ in written if p.startswith("/regions/")]
+    print(f"  indicators: {sum(1 for p, _ in written if p.startswith('/data/') and not p.endswith('/quintiles') and not p.endswith('/regions'))}")
     print(f"  quintile series: {len(quintiles)} ({', '.join(quintiles) or 'none'})")
+    print(f"  regional series: {len(regional)}")
+    print(f"  cause profiles: {len(causes)}")
 
     if skipped:
         print(f"  skipped: {', '.join(skipped)}")
@@ -121,7 +171,11 @@ def main() -> int:
         print("ERROR: no quintile series exported — the equity view would be empty.",
               file=sys.stderr)
         return 1
-
+    if not regional or not causes:
+        # Same reasoning for Module 4, which is now a first-class tab.
+        print("ERROR: regional or cause series not exported — Module 4 would be empty.",
+              file=sys.stderr)
+        return 1
     return 0
 
 

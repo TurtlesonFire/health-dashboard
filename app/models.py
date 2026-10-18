@@ -7,7 +7,13 @@ import os
 # Resolve the DB path relative to this file, not the working directory, so the
 # same code works locally and in CI (GitHub Actions, etc.).
 _DEFAULT_DB = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "health3.db")
-DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{_DEFAULT_DB}")
+# SQLite URLs require forward slashes. With a Windows backslash path SQLAlchemy
+# resolves the URL against a different, nonexistent location and silently creates
+# a fresh empty database there — the app then starts with zero indicators and no
+# error, which reads as "the data failed to load" rather than as the path bug it
+# is. Normalising here keeps the default correct on every platform.
+_DEFAULT_URL = "sqlite:///" + _DEFAULT_DB.replace("\\", "/")
+DATABASE_URL = os.getenv("DATABASE_URL", _DEFAULT_URL)
 
 # SQLite cannot create a missing parent directory, and data/ is gitignored (the
 # DB is a regenerable artifact), so a fresh clone has no such directory. Doing

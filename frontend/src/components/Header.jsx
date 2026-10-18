@@ -7,6 +7,7 @@ export default function Header({ activeTab, onTabChange }) {
     { id: 'disease', label: 'Disease Burden' },
     { id: 'risk', label: 'Risk Factors' },
     { id: 'context', label: 'Context & Demographics' },
+    { id: 'regional', label: 'Regional Comparison' },
   ]
 
   return (

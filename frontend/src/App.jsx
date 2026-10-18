@@ -19,6 +19,9 @@ const RiskFactorsModule = lazy(() =>
 const ContextModule = lazy(() =>
   import('./modules/ContextModule').then((m) => ({ default: m.default })),
 )
+const RegionalModule = lazy(() =>
+  import('./modules/RegionalModule').then((m) => ({ default: m.default })),
+)
 
 function ModuleFallback() {
   return (
@@ -44,6 +47,8 @@ export default function App() {
         return <RiskFactorsModule />
       case 'context':
         return <ContextModule />
+      case 'regional':
+        return <RegionalModule />
       default:
         return <OverviewModule />
     }

@@ -40,13 +40,24 @@ def get_or_create_indicator(db: Session, data: Dict[str, Any]) -> tuple[Indicato
     return indicator, True
 
 
-def get_or_create_region(db: Session, code: str, name: str = None) -> Region:
-    """Get existing region or create new one."""
+def get_or_create_region(db: Session, code: str, name: str = None,
+                         island_group: str = None) -> Region:
+    """Get existing region or create new one.
+
+    Subnational rows carry a display name and island group; national rows do not.
+    An existing row is backfilled rather than left with the code as its name,
+    which is what the earlier code-or-name fallback produced.
+    """
     region = db.query(Region).filter(Region.code == code).first()
     if not region:
-        region = Region(code=code, name=name or code)
+        region = Region(code=code, name=name or code, island_group=island_group)
         db.add(region)
         db.flush()
+    else:
+        if name and region.name != name:
+            region.name = name
+        if island_group and region.island_group != island_group:
+            region.island_group = island_group
     return region
 
 
@@ -118,7 +129,9 @@ def run_pipeline():
 
             # Get or create region
             if record.get("region_code"):
-                get_or_create_region(db, record["region_code"])
+                get_or_create_region(db, record["region_code"],
+                                     record.get("region_name"),
+                                     record.get("island_group"))
 
             # Upsert data point
             _dp, dp_created = upsert_data_point(db, indicator, record)

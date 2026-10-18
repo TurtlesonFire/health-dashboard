@@ -108,17 +108,71 @@ check('Q1 2024 value intact', Math.abs(p2024.value - 39.14) < 0.01,
   `Q1 2024 = ${p2024.value}`)
 
 const ind = await (await fetch(`${BASE}/api/indicators.json`)).json()
-check('all 32 indicators exported', ind.length === 32, `${ind.length}`)
+// 32 WHO/World Bank indicators plus the 21 the PSA source adds: the all-cause
+// total, nineteen ICD-10 chapters and the residual "other causes" bucket.
+check('all 53 indicators exported', ind.length === 53, `${ind.length}`)
+check('regional indicators exported',
+  ind.filter((i) => i.category === 'regional').length === 21,
+  `${ind.filter((i) => i.category === 'regional').length} regional`)
 
 const info = await (await fetch(`${BASE}/api/metric-info.json`)).json()
-check('metric blurbs exported', Object.keys(info).length >= 31,
+check('metric blurbs exported', Object.keys(info).length >= 52,
   `${Object.keys(info).length} blurbs`)
+check('every PSA indicator has a blurb',
+  ind.filter((i) => i.source === 'psa')
+    .every((i) => info[i.code]?.what && info[i.code]?.how),
+  `${ind.filter((i) => i.source === 'psa').length} PSA indicators`)
 check('UHC blurb intact', Boolean(info.UHC_INDEX_REPORTED?.how))
 
 const peso = await (await fetch(`${BASE}/api/data/NY.GDP.PCAP.CN.json`)).json()
 const p24 = peso.find((r) => r.year === 2024)
 check('peso series intact', Math.abs(p24.value - 228320.14) < 1,
   `2024 = ${p24.value}`)
+
+// ============================================================================
+console.log()
+console.log('='.repeat(78))
+console.log('Regional payloads (Module 4)')
+console.log('='.repeat(78))
+
+// Module 4 is the dashboard's subnational view and the payload most likely to
+// rot silently: it comes from a separate exporter pass and a code-split chunk,
+// so a missing file surfaces as an empty tab rather than as an error.
+const regional = await (await fetch(`${BASE}/api/data/PSA_DEATHS_ALL_CAUSES/regions.json`)).json()
+check('regional payload has 18 regions', regional.regions?.length === 18,
+  `${regional.regions?.length} regions`)
+check('regional payload carries the national total', Boolean(regional.national))
+check('national 2024 intact',
+  Math.abs(regional.national?.latest_value - 701884) < 1,
+  `${regional.national?.latest_value}`)
+check('regions ranked descending',
+  regional.regions.every((r, i, a) => i === 0 || a[i - 1].latest_value >= r.latest_value))
+check('every region name is a real region, not the national name',
+  regional.regions.every((r) => r.region_name && r.region_name !== 'Philippines'),
+  `${regional.regions.length} names`)
+// NIR exists only from 2024. Asserting the gap is deliberate: an invented
+// history would mean the ETL is fabricating years.
+check('NIR has no history before it existed',
+  regional.regions.find((r) => r.region_code === '1800000000')?.points?.length === 1)
+
+const causes = await (await fetch(`${BASE}/api/regions/1900000000/causes.json`)).json()
+check('cause profile names its region', causes.region_name?.startsWith('Bangsamoro'))
+check('cause profile reports the all-cause total', causes.all_causes === 5552,
+  `${causes.all_causes}`)
+check('causes are ranked descending',
+  causes.causes.every((c, i, a) => i === 0 || a[i - 1].value >= c.value))
+// The payload is the top 10 of 20 causes, so the values cannot sum to the
+// total. What must hold instead is that each share is that cause's value
+// divided by the region's OWN all-cause total — the check that shares are not
+// computed against some other denominator and then presented as shares of the
+// region.
+const top = causes.causes[0]
+check('cause shares are computed against the region total',
+  Math.abs(top.share - (100 * top.value) / causes.all_causes) < 0.01,
+  `${top.share}% vs ${((100 * top.value) / causes.all_causes).toFixed(2)}%`)
+check('cause payload is a bounded top-N slice of valid shares',
+  causes.causes.length <= 10 &&
+  causes.causes.every((c) => c.share > 0 && c.share <= 100))
 
 // ============================================================================
 console.log()

@@ -19,7 +19,9 @@ export const IS_STATIC = DATA_MODE === 'static'
 
 // Query parameters the exporter bakes in as the default. A static build has
 // exactly one file per path, so a request carrying these is served that file;
-// any *other* parameter would need a variant that does not exist.
+// any *other* parameter would need a variant that does not exist. So any
+// function that can be asked for something other than the default slice must
+// accept no params — see getIndicatorRegions / getRegionCauses below.
 const STATIC_DEFAULTS = new Set(['sex=SEX_BTSX'])
 
 function staticUrl(path, params) {
@@ -97,6 +99,20 @@ export async function getIndicatorQuintiles(indicatorCode, { sex, yearFrom, year
   if (yearFrom) params.set('year_from', yearFrom)
   if (yearTo) params.set('year_to', yearTo)
   return fetchJSON(`/data/${indicatorCode}/quintiles`, params)
+}
+
+// Subnational breakdown: one series per region plus the national total.
+// No query params — a static build serves exactly one file per path, and any
+// other parameter would not have been pre-rendered.
+export async function getIndicatorRegions(indicatorCode) {
+  return fetchJSON(`/data/${indicatorCode}/regions`)
+}
+
+// Leading causes of death in one region. The cause rows are mutually exclusive
+// and sum to the region's all-cause total, so the shares are honest shares of
+// that total rather than shares of a partial sum.
+export async function getRegionCauses(regionCode) {
+  return fetchJSON(`/regions/${regionCode}/causes`)
 }
 
 export async function getCategories() {
