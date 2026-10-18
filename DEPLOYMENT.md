@@ -32,7 +32,7 @@ standing between a tap and a chart.
    scripts/export_static.py     run the real FastAPI endpoints via TestClient
             │                   and write JSON to frontend/public/api/
             ▼
-   vite build (VITE_DATA_MODE=static)
+   npm run build:static
             │
             ▼
    frontend/dist/               the entire deployable site
