@@ -77,11 +77,16 @@ export function bothSexesSeries(rows) {
     .sort((a, b) => a.year - b.year)
 }
 
+// The static build can only serve parameter-free files, so we always fetch the
+// full indicator list and filter client-side. The full list carries `category`
+// and `source` on every entry, so this is equivalent to server-side filtering.
 export async function getIndicators(category, source) {
-  const params = new URLSearchParams()
-  if (category) params.set('category', category)
-  if (source) params.set('source', source)
-  return fetchJSON('/indicators', params)
+  const all = await fetchJSON('/indicators')
+  return all.filter((ind) => {
+    if (category && ind.category !== category) return false
+    if (source && ind.source !== source) return false
+    return true
+  })
 }
 
 export async function getIndicatorData(indicatorCode, year, region) {
