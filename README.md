@@ -4,6 +4,8 @@ An interactive dashboard for Philippine health systems data from the WHO Global 
 
 **Live site:** [turtlesonfire.github.io/health-dashboard](https://turtlesonfire.github.io/health-dashboard/)
 
+[![Verify](https://github.com/TurtlesonFire/health-dashboard/actions/workflows/verify.yml/badge.svg)](https://github.com/TurtlesonFire/health-dashboard/actions/workflows/verify.yml)
+
 **Data sources:** [WHO GHO](https://www.who.int/data/gho) · [World Bank Open Data](https://data.worldbank.org/)
 
 ---
@@ -50,6 +52,8 @@ The dashboard presents this as a single-year cross-section with confidence inter
 
 ## Project Repository
 
-This repository contains the source code for the dashboard, including the ETL pipeline that fetches and normalises data from the upstream APIs, and the GitHub Actions workflow that builds and deploys the static site.
+This repository contains the source code for the dashboard, including the ETL pipeline that fetches and normalises data from the upstream APIs, and the GitHub Actions workflows that verify and deploy the static site.
+
+Changes land on the `testing` branch first: every pull request into `main` runs the full pipeline and all four verification suites, and the deploy job publishes the exact artifact those suites passed. See [DEPLOYMENT.md](DEPLOYMENT.md) for the release flow.
 
 The deployed site is fully static — no backend server runs at runtime.

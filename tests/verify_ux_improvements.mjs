@@ -9,10 +9,9 @@
  */
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
-const API = 'http://localhost:8000'
-const SRC = 'C:/Users/Asus/health-dashboard/frontend/src'
-const DIST = 'C:/Users/Asus/health-dashboard/frontend/dist/assets'
+import { API, SRC, DIST } from './env.mjs'
 
 let pass = 0
 let fail = 0
@@ -28,9 +27,9 @@ async function getJSON(path) {
 }
 
 // ---- import the real formatter so we test shipped logic, not a copy --------
-const fmt = await import(
-  'file:///' + join(SRC, 'format.js').replace(/\\/g, '/')
-)
+// pathToFileURL, not string concatenation: on POSIX ('/home/runner/...')
+// 'file:///' + path yields four slashes and an empty-authority URL.
+const fmt = await import(pathToFileURL(join(SRC, 'format.js')).href)
 
 // ============================================================ 2. peso GDP ===
 console.log('='.repeat(78))

@@ -1,0 +1,114 @@
+name: Verify
+
+# The gate. Everything that reaches `main` passes through here first:
+#
+#   feature branch --PR--> testing        verify.yml runs
+#   push to testing                       verify.yml runs
+#   testing --PR--> main                  verify.yml runs (required check)
+#   merge to main                         deploy.yml calls this, then deploys
+#
+# This workflow builds the real deployable artifact (ETL -> static JSON ->
+# Vite build) and runs all four verification suites against it. It never
+# deploys; that is deploy.yml's job.
+
+on:
+  workflow_call:
+  pull_request:
+    branches: [main, testing]
+  push:
+    branches: [testing]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- Backend: fetch data, export static JSON ---
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Run ETL (WHO GHO + World Bank)
+        run: |
+          # The ETL depends on two live public APIs, so give it one retry
+          # before failing the build. `data/` is gitignored, which makes this a
+          # fresh database every run — so it must report indicators *created*.
+          # A regression in create-detection shows up here and nowhere else.
+          set -o pipefail
+          python -m app.etl.pipeline 2>&1 | tee "$RUNNER_TEMP/etl.log" \
+            || python -m app.etl.pipeline 2>&1 | tee "$RUNNER_TEMP/etl.log"
+          if grep -q "0 indicators created" "$RUNNER_TEMP/etl.log"; then
+            echo "::error::ETL reported 0 indicators created on a fresh database"
+            exit 1
+          fi
+          grep "Pipeline complete" "$RUNNER_TEMP/etl.log"
+
+      - name: Export API to static JSON
+        run: python scripts/export_static.py
+
+      # --- Frontend: build the site exactly as it will be deployed ---
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+        working-directory: frontend
+
+      - name: Build static site
+        working-directory: frontend
+        run: VITE_DATA_MODE=static npx vite build
+
+      # --- Verify the artifact ---
+      - name: Run verification suites
+        run: |
+          # Both servers must be started in THIS step. GitHub Actions tears down
+          # the process group when a step's shell exits, so a server started in
+          # an earlier step is already gone by the time the suites run.
+          set -o pipefail
+
+          python -m uvicorn app.main:app --port 8000 --log-level warning &
+          backend=$!
+          python -m http.server 4180 --directory frontend/dist &
+          preview=$!
+          trap 'kill $backend $preview 2>/dev/null || true' EXIT
+
+          wait_for() {  # url, label
+            for _ in $(seq 1 40); do
+              if curl -sf -o /dev/null "$1"; then echo "  up: $2"; return 0; fi
+              sleep 1
+            done
+            echo "::error::$2 never came up at $1"
+            return 1
+          }
+          wait_for http://localhost:8000/health "FastAPI backend :8000"
+          wait_for http://localhost:4180/       "static preview :4180"
+
+          failed=0
+          for suite in verify_quintile_logic verify_fix_and_split \
+                       verify_ux_improvements verify_static_deploy; do
+            echo "::group::$suite"
+            node "tests/$suite.mjs" || failed=1
+            echo "::endgroup::"
+          done
+          exit $failed
+
+      # Hand the exact bytes that were tested to the deploy job, so the thing
+      # deployed is provably the thing verified.
+      - name: Upload built site
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: frontend/dist
+          retention-days: 7

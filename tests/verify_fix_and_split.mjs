@@ -8,8 +8,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
-const API = 'http://localhost:8000'
-const DIST = 'C:/Users/Asus/health-dashboard/frontend/dist/assets'
+import { API, DIST } from './env.mjs'
 
 // ---- mirror of frontend/src/api.js -----------------------------------------
 const SEX_BOTH = 'SEX_BTSX'

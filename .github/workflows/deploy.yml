@@ -1,5 +1,14 @@
 name: Deploy to GitHub Pages
 
+# Runs only on `main`, and only after verify.yml has passed on that exact
+# commit. The site deployed is the artifact verify.yml built and tested — this
+# job does not rebuild, so it cannot deploy bytes that were never verified.
+#
+# Release flow:
+#   git checkout testing && git push origin testing     -> verify.yml runs
+#   gh pr create --base main --head testing             -> verify.yml runs (required)
+#   merge                                               -> this workflow deploys
+
 on:
   push:
     branches: [main]
@@ -15,51 +24,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  verify:
+    uses: ./.github/workflows/verify.yml
+
   deploy:
+    needs: verify
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-
-      # --- Backend: fetch data, export static JSON ---
-      - uses: actions/setup-python@v5
+      - uses: actions/download-artifact@v4
         with:
-          python-version: '3.12'
-          cache: pip
+          name: dist
+          path: dist
 
-      - run: pip install -r requirements.txt
-
-      - name: Create data directory
-        run: mkdir -p data
-
-      - name: Run ETL
-        run: python -m app.etl.pipeline
-
-      - name: Export API to JSON
-        run: python scripts/export_static.py
-
-      # --- Frontend: build static site ---
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
-      - run: npm ci
-        working-directory: frontend
-
-      - name: Build static site
-        working-directory: frontend
-        run: VITE_DATA_MODE=static npx vite build
-
-      # --- Deploy ---
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: frontend/dist
+          path: dist
 
       - id: deployment
         uses: actions/deploy-pages@v4

@@ -9,6 +9,15 @@ import os
 _DEFAULT_DB = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "health3.db")
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{_DEFAULT_DB}")
 
+# SQLite cannot create a missing parent directory, and data/ is gitignored (the
+# DB is a regenerable artifact), so a fresh clone has no such directory. Doing
+# this here means `python -m app.etl.pipeline` works with no setup step — the
+# requirement used to live in CI config and in whoever remembered to mkdir.
+if DATABASE_URL.startswith("sqlite:///"):
+    _db_dir = os.path.dirname(DATABASE_URL[len("sqlite:///"):])
+    if _db_dir:
+        os.makedirs(_db_dir, exist_ok=True)
+
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()

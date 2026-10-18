@@ -74,6 +74,46 @@ knows which is active. A static build has one file per path, so requesting a
 slice the exporter did not pre-render (e.g. `?year=2015`) raises a clear error
 instead of silently returning the wrong variant.
 
+## Release flow
+
+`main` is the deployed branch, and nothing reaches it without passing the same
+verification the deploy itself runs.
+
+```
+  feature branch ──PR──▶ testing ──PR──▶ main ──▶ deploy
+                             │             │
+                             └─── verify ──┘
+```
+
+| Workflow | Trigger | Does |
+|---|---|---|
+| `verify.yml` | PR into `main` or `testing`; push to `testing` | ETL → static export → Vite build → all four verification suites. Never deploys. |
+| `deploy.yml` | push to `main` | Calls `verify.yml`, then publishes the artifact that `verify.yml` built and tested. |
+
+`deploy.yml` downloads the artifact `verify.yml` produced instead of rebuilding,
+so the bytes on the live site are provably the bytes that passed the suites.
+
+### Making a change
+
+```bash
+git checkout testing && git pull
+# ...edit...
+./check.ps1                                # all four suites, both servers up
+git commit -am "..."
+git push origin testing                    # verify.yml runs
+gh pr create --base main --head testing    # verify.yml runs as a required check
+# merge once green -> deploy.yml runs
+```
+
+`main` requires a pull request and a passing `verify` check, so a direct push is
+rejected. `enforce_admins` is off, so the repository owner can still bypass in an
+emergency — prefer fixing forward on `testing`.
+
+The verification suites are plain Node scripts under `tests/` and take their
+paths and endpoints from `tests/env.mjs`, so they run from any checkout
+(locally or in CI) with no edits. Override with `API_BASE`, `STATIC_BASE`, and
+`DIST_DIR` if your servers listen elsewhere.
+
 ## Refreshing the data
 
 WHO and the World Bank revise these series roughly annually. To pick up new
@@ -87,10 +127,12 @@ regenerates the JSON. There is no database to migrate and no server to restart.
 **Requirements:** none beyond static file serving. No build step on the host if
 you deploy the built output, no environment variables, no secrets.
 
-**One setting to check:** the site is served from `/` and fetches `/api/*.json`,
-so it must be hosted at a domain **root**. A subpath deployment (e.g.
-`example.com/dashboard/`) would need Vite's `base` option set to match, and the
-`/api` fetch prefix updated.
+**One setting to check:** Vite's `base` must match the path the site is served
+from. GitHub Pages serves project sites from a subpath, so static builds set
+`base: '/health-dashboard/'` and the frontend fetches
+`/health-dashboard/api/*.json` — both derive from `import.meta.env.BASE_URL`
+(see `frontend/vite.config.js` and `frontend/src/api.js`). Hosting at a domain
+root instead means changing that one option and nothing else.
 
 ## Migrating to a backend later
 

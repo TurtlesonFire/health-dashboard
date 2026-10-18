@@ -14,23 +14,30 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def get_or_create_indicator(db: Session, data: Dict[str, Any]) -> Indicator:
-    """Get existing indicator or create new one."""
+def get_or_create_indicator(db: Session, data: Dict[str, Any]) -> tuple[Indicator, bool]:
+    """Get existing indicator or create new one.
+
+    Returns (indicator, created). The flag is returned explicitly rather than
+    inferred from ``indicator.id is None`` at the call site: ``db.flush()``
+    below assigns the primary key, so an id check always reported "existing"
+    and the pipeline summary printed "0 indicators" no matter what it loaded.
+    """
     indicator = db.query(Indicator).filter(
         Indicator.code == data["indicator_code"]
     ).first()
-    if not indicator:
-        indicator = Indicator(
-            code=data["indicator_code"],
-            name=data["indicator_name"],
-            category=data["category"],
-            source=data["source"],
-            unit=data["unit"],
-            description=data.get("description"),
-        )
-        db.add(indicator)
-        db.flush()
-    return indicator
+    if indicator:
+        return indicator, False
+    indicator = Indicator(
+        code=data["indicator_code"],
+        name=data["indicator_name"],
+        category=data["category"],
+        source=data["source"],
+        unit=data["unit"],
+        description=data.get("description"),
+    )
+    db.add(indicator)
+    db.flush()
+    return indicator, True
 
 
 def get_or_create_region(db: Session, code: str, name: str = None) -> Region:
@@ -43,8 +50,8 @@ def get_or_create_region(db: Session, code: str, name: str = None) -> Region:
     return region
 
 
-def upsert_data_point(db: Session, indicator: Indicator, data: Dict[str, Any]) -> DataPoint:
-    """Insert or update a data point.
+def upsert_data_point(db: Session, indicator: Indicator, data: Dict[str, Any]) -> tuple[DataPoint, bool]:
+    """Insert or update a data point. Returns (data_point, created).
 
     The match key includes quintile: without it a WQ1 row would silently
     overwrite the national total for the same (indicator, year, sex).
@@ -63,7 +70,7 @@ def upsert_data_point(db: Session, indicator: Indicator, data: Dict[str, Any]) -
         existing.low = data.get("low")
         existing.high = data.get("high")
         existing.data_date = data.get("data_date")
-        return existing
+        return existing, False
     else:
         dp = DataPoint(
             indicator_id=indicator.id,
@@ -78,7 +85,7 @@ def upsert_data_point(db: Session, indicator: Indicator, data: Dict[str, Any]) -
             data_date=data.get("data_date"),
         )
         db.add(dp)
-        return dp
+        return dp, True
 
 
 def run_pipeline():
@@ -101,11 +108,12 @@ def run_pipeline():
 
         indicators_created = 0
         data_points_created = 0
+        data_points_updated = 0
 
         for record in all_data:
             # Get or create indicator
-            indicator = get_or_create_indicator(db, record)
-            if indicator.id is None:
+            indicator, indicator_created = get_or_create_indicator(db, record)
+            if indicator_created:
                 indicators_created += 1
 
             # Get or create region
@@ -113,12 +121,27 @@ def run_pipeline():
                 get_or_create_region(db, record["region_code"])
 
             # Upsert data point
-            dp = upsert_data_point(db, indicator, record)
-            if dp.id is None:
+            _dp, dp_created = upsert_data_point(db, indicator, record)
+            if dp_created:
                 data_points_created += 1
+            else:
+                data_points_updated += 1
 
         db.commit()
-        logger.info(f"Pipeline complete: {indicators_created} indicators, {data_points_created} data points")
+
+        # Report the resulting totals as well as this run's deltas: on a
+        # re-run every data point is an update, so "0 created" is expected
+        # and would otherwise look like a failure.
+        totals = (
+            db.query(Indicator).count(),
+            db.query(DataPoint).count(),
+        )
+        logger.info(
+            f"Pipeline complete: {indicators_created} indicators created, "
+            f"{data_points_created} data points created, "
+            f"{data_points_updated} updated"
+        )
+        logger.info(f"Database now holds {totals[0]} indicators, {totals[1]} data points")
     except Exception as e:
         db.rollback()
         logger.error(f"Pipeline failed: {e}")
