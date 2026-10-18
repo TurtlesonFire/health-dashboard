@@ -105,9 +105,11 @@ gh pr create --base main --head testing    # verify.yml runs as a required check
 # merge once green -> deploy.yml runs
 ```
 
-`main` requires a pull request and a passing `verify` check, so a direct push is
-rejected. `enforce_admins` is off, so the repository owner can still bypass in an
-emergency — prefer fixing forward on `testing`.
+`main` requires a pull request and a passing `verify` check. `enforce_admins` is
+off, so the repository owner (the only collaborator today) can still push
+directly — the protection is a guardrail for anyone else and a nudge for the
+owner. The hard guarantee is the deploy gate: `deploy.yml` runs `verify.yml` on
+every push to `main`, so a direct push still cannot publish anything that fails.
 
 The verification suites are plain Node scripts under `tests/` and take their
 paths and endpoints from `tests/env.mjs`, so they run from any checkout
