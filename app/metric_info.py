@@ -278,6 +278,175 @@ METRIC_INFO = {
                "coverage usually means solid fuel use, so it tracks poverty "
                "closely.",
     },
+
+    # ------------------------------------------------------------- PSA regional
+    # ICD-10 chapter-level cause of death, by region of usual residence.
+    # These are mutually exclusive and sum to the all-cause total, which is why
+    # they can be read as shares of that total. They are chapters, not the
+    # specific causes PSA headlines: "Diseases of the circulatory system" is the
+    # whole chapter, and ischaemic heart disease plus cerebrovascular disease
+    # sit inside it.
+    "PSA_DEATHS_ALL_CAUSES": {
+        "what": "Deaths registered with the Philippine Statistics Authority, "
+                "all causes, for people whose usual residence is in a given "
+                "region.",
+        "how": "A count of deaths, not a rate. Regions differ enormously in "
+               "population, so do not read this ranking as a statement about "
+               "health risk — CALABARZON and Central Luzon top the list because "
+               "they hold the most people. Compare regions over time, or use "
+               "the cause views alongside mortality rates, before drawing any "
+               "conclusion about which region is less healthy. NIR appears only "
+               "from 2024, when it was created.",
+    },
+    "PSA_DEATHS_CAUSE_CERTAIN_INFECTIOUS_AND_PARASITIC_DISEASES": {
+        "what": "Deaths coded to tuberculosis, diarrhoeal disease, HIV, "
+                "hepatitis and the other infectious and parasitic diseases.",
+        "how": "The chapter that usually signals gaps in primary care and "
+               "infection control. A large share here, relative to other "
+               "causes, is more actionable than a large share of chronic "
+               "disease.",
+    },
+    "PSA_DEATHS_CAUSE_NEOPLASMS": {
+        "what": "Deaths from cancer, all sites.",
+        "how": "Cancer registries are incomplete in the Philippines, so a low "
+               "figure can reflect under-registration rather than genuinely "
+               "lower incidence. Read trends, not levels.",
+    },
+    "PSA_DEATHS_CAUSE_DISEASES_OF_THE_BLOOD_AND_BLOOD_FORMING_ORGANS": {
+        "what": "Deaths coded to anaemia, haemophilia, diseases of the blood "
+                "and blood-forming organs, and disorders of the immune "
+                "mechanism.",
+        "how": "Anaemia drives most of this chapter and tracks nutrition, "
+               "parasitic disease and malaria. It is also a common "
+               "underlying condition rather than the final cause, so treat a "
+               "high share as a sign of how deaths are coded as much as of "
+               "how people die.",
+    },
+    "PSA_DEATHS_CAUSE_ENDOCRINE_NUTRITIONAL_AND_METABOLIC_DISEASES": {
+        "what": "Deaths coded to diabetes, thyroid disease, malnutrition and "
+                "the other endocrine and metabolic causes.",
+        "how": "This is where diabetes sits. It rises with diet and obesity "
+               "and responds to primary care, so it is one of the most "
+               "policy-relevant chapters on the dashboard.",
+    },
+    "PSA_DEATHS_CAUSE_MENTAL_AND_BEHAVIOURAL_DISORDERS": {
+        "what": "Deaths coded to mental and behavioural conditions, including "
+                "dementia and substance-use disorders.",
+        "how": "A chapter that is growing as the population ages. It is also "
+               "one of the most under-recorded categories — deaths from these "
+               "causes often end up coded elsewhere.",
+    },
+    "PSA_DEATHS_CAUSE_DISEASES_OF_THE_NERVOUS_SYSTEM": {
+        "what": "Deaths coded to epilepsy, Parkinson's, Alzheimer's and the "
+                "other nervous-system diseases.",
+        "how": "Read alongside the endocrine chapter: dementia appears in both, "
+               "and age structure drives the trend.",
+    },
+    "PSA_DEATHS_CAUSE_DISEASES_OF_THE_EYE_AND_ADNEXA": {
+        "what": "Deaths coded to cataract, glaucoma and the other diseases of "
+                "the eye and its adnexa.",
+        "how": "A small chapter that grows steadily with age. Cataract is "
+               "the main driver and is largely treatable, so a high figure "
+               "can point at unmet surgical need rather than at a deadly "
+               "disease.",
+    },
+    "PSA_DEATHS_CAUSE_DISEASES_OF_THE_EAR_AND_MASTOID_PROCESS": {
+        "what": "Deaths coded to diseases of the ear and mastoid process.",
+        "how": "The smallest chapter on the dashboard and rarely worth a "
+               "decision on its own. Check it for completeness, then move "
+               "on.",
+    },
+    "PSA_DEATHS_CAUSE_DISEASES_OF_THE_CIRCULATORY_SYSTEM": {
+        "what": "Deaths coded to ischaemic heart disease, cerebrovascular "
+                "disease, hypertensive disease, heart failure and the other "
+                "circulatory causes. The largest single chapter, usually about "
+                "two-fifths of all deaths.",
+        "how": "PSA headlines the specific causes inside this chapter — "
+               "ischaemic heart disease and cerebrovascular disease — so do "
+               "not add those figures to this one; they are subsets of it. A "
+               "high share signals the NCD transition well advanced, which "
+               "shifts the case from acute care toward long-term chronic "
+               "disease management.",
+    },
+    "PSA_DEATHS_CAUSE_DISEASES_OF_THE_RESPIRATORY_SYSTEM": {
+        "what": "Deaths coded to pneumonia, influenza, chronic obstructive "
+                "pulmonary disease and the other respiratory causes.",
+        "how": "The most age-bimodal chapter: it spikes in the very young and "
+               "the very old. Pneumonia at the top of a region's list points at "
+               "primary-care and vaccination gaps rather than at chronic "
+               "disease.",
+    },
+    "PSA_DEATHS_CAUSE_DISEASES_OF_THE_DIGESTIVE_SYSTEM": {
+        "what": "Deaths coded to liver disease, cirrhosis, peptic ulcer and "
+                "the other digestive causes.",
+        "how": "Cirrhosis and alcoholic liver disease track alcohol consumption, "
+               "so this chapter is a useful indirect read on it.",
+    },
+    "PSA_DEATHS_CAUSE_DISEASES_OF_THE_SKIN_AND_SUBCUTANEOUS_TISSUE": {
+        "what": "Deaths coded to skin and subcutaneous tissue diseases.",
+        "how": "A small chapter. Check it only for completeness — a spike here "
+               "is more often a coding artefact than a real signal.",
+    },
+    "PSA_DEATHS_CAUSE_DISEASES_OF_THE_MUSCULOSKELETAL_SYSTEM_AND_CONNECTIVE_TISSUE": {
+        "what": "Deaths coded to arthritis, osteoporosis and the other "
+                "musculoskeletal and connective-tissue diseases.",
+        "how": "Small in count but large in disability. It rarely kills "
+               "directly, so a rise usually reflects an ageing population.",
+    },
+    "PSA_DEATHS_CAUSE_DISEASES_OF_THE_GENITOURINARY_SYSTEM": {
+        "what": "Deaths coded to kidney disease, urinary-tract infection and "
+                "the other genitourinary causes.",
+        "how": "Kidney disease is rising and is closely tied to diabetes and "
+               "hypertension, so read it with the endocrine chapter.",
+    },
+    "PSA_DEATHS_CAUSE_PREGNANCY_CHILDBIRTH_AND_THE_PUERPERIUM": {
+        "what": "Maternal deaths, including those from haemorrhage, sepsis, "
+                "hypertensive disorders of pregnancy and unsafe abortion.",
+        "how": "Small in number and therefore volatile year to year. Look at "
+               "the trend and the regional pattern, never a single year. A "
+               "region with few maternal deaths can still be failing — check "
+               "the count, not only the share.",
+    },
+    "PSA_DEATHS_CAUSE_CERTAIN_CONDITIONS_ORIGINATING_IN_THE_PERINATAL_PERIOD": {
+        "what": "Deaths in the first four weeks of life, from prematurity, "
+                "birth asphyxia, neonatal sepsis and congenital conditions.",
+        "how": "The most direct read on the quality of delivery and neonatal "
+               "care. Where this chapter is large, the gap is usually "
+               "facility-based obstetric and newborn services.",
+    },
+    "PSA_DEATHS_CAUSE_CONGENITAL_MALFORMATIONS_AND_CHROMOSOMAL_ABNORMALITIES": {
+        "what": "Deaths from congenital malformations and chromosomal "
+                "abnormalities.",
+        "how": "A small, stable chapter. It moves slowly and is rarely the "
+               "place to look for a health-system signal.",
+    },
+    "PSA_DEATHS_CAUSE_SYMPTOMS_SIGNS_AND_ABNORMAL_FINDINGS_NOT_ELSEWHERE_CLASSIFIED": {
+        "what": "Deaths where the certifier could not or did not name a "
+                "specific disease — 'old age', cardiac arrest without a cause, "
+                "and the like.",
+        "how": "A data-quality measure disguised as a cause of death. A high "
+               "share means poor death certification in that region, so treat "
+               "every other chapter from the same region with more caution. "
+               "Rural regions tend to run higher here.",
+    },
+    "PSA_DEATHS_CAUSE_EXTERNAL_CAUSES_OF_MORBIDITY_AND_MORTALITY": {
+        "what": "Deaths from transport accidents, drowning, falls, burns, "
+                "poisoning, violence and suicide.",
+        "how": "The only large cause of death that is largely preventable and "
+               "that concentrates in young adults. Compare regions with care: "
+               "more roads and more vehicles mean more transport deaths, so a "
+               "high figure can reflect exposure rather than a weaker safety "
+               "response.",
+    },
+    "PSA_DEATHS_CAUSE_OTHER": {
+        "what": "Deaths coded outside the ICD-10 chapters, chiefly COVID-19, "
+                "SARS and a handful of other special codes.",
+        "how": "Derived, not reported: the all-cause total minus the sum of "
+               "the nineteen chapters. It exists so the cause set is complete "
+               "and shares of total are honest. It is not zero and was not "
+               "always small — the residual is larger in COVID-heavy years and "
+               "regions.",
+    },
 }
 
 

@@ -12,48 +12,11 @@ import requests
 import time
 import logging
 
+from app.etl.base import DataSource
+from app.etl.psa import PSAOpenStatSource
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-class DataSource(ABC):
-    """Base interface for all data sources."""
-
-    @abstractmethod
-    def fetch(self) -> List[Dict[str, Any]]:
-        """Fetch raw data from the source API."""
-        pass
-
-    @abstractmethod
-    def normalize(self, raw_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Normalize raw data to common schema:
-        {
-            'indicator_code': str,
-            'indicator_name': str,
-            'category': str,
-            'source': str,
-            'unit': str,
-            'region_code': str,
-            'year': int,
-            'value': float,
-            'low': float or None,       # CI lower bound, where the source provides one
-            'high': float or None,      # CI upper bound
-            'quintile': str or None,    # wealth quintile; None = undisaggregated total
-            'sex': str or None,
-            'age_group': str or None,
-            'data_date': date or None,
-        }
-        """
-        pass
-
-    def run(self) -> List[Dict[str, Any]]:
-        """Full ETL: fetch + normalize."""
-        logger.info(f"[{self.__class__.__name__}] Fetching data...")
-        raw = self.fetch()
-        logger.info(f"[{self.__class__.__name__}] Fetched {len(raw)} records")
-        normalized = self.normalize(raw)
-        logger.info(f"[{self.__class__.__name__}] Normalized to {len(normalized)} records")
-        return normalized
 
 
 class WHOGHOSource(DataSource):
@@ -367,8 +330,9 @@ class WorldBankSource(DataSource):
 SOURCES = [
     WHOGHOSource(),
     WorldBankSource(),
-    # PSASource(),  # TODO: Add when we tackle scraping
-    # DOHFHSISSource(),  # TODO: Add when we tackle scraping
+    PSAOpenStatSource(),
+    # DOHFHSISSource(),  # TODO: FHSIS is PDF-only — DOH states it cannot supply
+    #                    # Excel/CSV, so this one genuinely needs PDF extraction.
 ]
 
 

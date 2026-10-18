@@ -22,6 +22,9 @@ export default function BarChartCard({
   source,
   height = 300,
   yDomain,
+  // 'horizontal' ranks categories down the left edge, which is what a region
+  // ranking needs — region names are far too long for vertical bar labels.
+  layout = 'vertical',
 }) {
   if (!data || data.length === 0) {
     return (
@@ -45,19 +48,44 @@ export default function BarChartCard({
         {source && <SourceBadge source={source} />}
       </div>
       <ResponsiveContainer width="100%" height={height}>
-        <BarChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+        <BarChart
+          data={data}
+          layout={layout}
+          margin={layout === 'horizontal'
+            ? { top: 5, right: 40, left: 8, bottom: 5 }
+            : { top: 5, right: 20, left: 0, bottom: 5 }}
+        >
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-          <XAxis
-            dataKey={xKey}
-            tick={{ fontSize: 12 }}
-            tickLine={{ stroke: '#e5e7eb' }}
-          />
-          <YAxis
-            tick={{ fontSize: 12 }}
-            tickLine={{ stroke: '#e5e7eb' }}
-            domain={yDomain || ['auto', 'auto']}
-            label={unit ? { value: unit, angle: -90, position: 'insideLeft', style: { fontSize: 11 } } : undefined}
-          />
+          {layout === 'horizontal' ? (
+            <>
+              <XAxis
+                type="number"
+                tick={{ fontSize: 12 }}
+                tickLine={{ stroke: '#e5e7eb' }}
+              />
+              <YAxis
+                type="category"
+                dataKey={xKey}
+                width={150}
+                tick={{ fontSize: 12 }}
+                tickLine={{ stroke: '#e5e7eb' }}
+              />
+            </>
+          ) : (
+            <>
+              <XAxis
+                dataKey={xKey}
+                tick={{ fontSize: 12 }}
+                tickLine={{ stroke: '#e5e7eb' }}
+              />
+              <YAxis
+                tick={{ fontSize: 12 }}
+                tickLine={{ stroke: '#e5e7eb' }}
+                domain={yDomain || ['auto', 'auto']}
+                label={unit ? { value: unit, angle: -90, position: 'insideLeft', style: { fontSize: 11 } } : undefined}
+              />
+            </>
+          )}
           <Tooltip
             contentStyle={{
               backgroundColor: '#fff',
@@ -67,7 +95,11 @@ export default function BarChartCard({
             }}
             formatter={(value) => [`${Number(value).toFixed(1)} ${unit}`, title]}
           />
-          <Bar dataKey={dataKey} fill={color} radius={[4, 4, 0, 0]} />
+          <Bar
+            dataKey={dataKey}
+            fill={color}
+            radius={layout === 'horizontal' ? [0, 4, 4, 0] : [4, 4, 0, 0]}
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:static": "set \"VITE_DATA_MODE=static\" && vite build",
     "preview": "vite preview"
   },
   "dependencies": {

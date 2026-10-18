@@ -5,7 +5,7 @@ FastAPI backend for Health Systems Data Dashboard.
 from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel
 from datetime import date
 
@@ -200,6 +200,7 @@ def get_indicator_data(
     year: Optional[int] = None,
     region: Optional[str] = None,
     include_quintiles: bool = False,
+    include_regions: bool = False,
     db: Session = Depends(get_db),
 ):
     """Get data points for a specific indicator.
@@ -207,6 +208,10 @@ def get_indicator_data(
     Quintile-disaggregated rows are excluded by default — they would otherwise
     return several values per year and make a plain trend line oscillate.
     Use /data/{indicator_code}/quintiles for the wealth-quintile breakdown.
+
+    Subnational rows are excluded for the same reason: an indicator carrying a
+    regional breakdown returns one row per region per year, which would make a
+    national trend line bounce between regions. Use /data/{code}/regions.
     """
     indicator = db.query(Indicator).filter(Indicator.code == indicator_code).first()
     if not indicator:
@@ -215,6 +220,8 @@ def get_indicator_data(
     query = db.query(DataPoint).filter(DataPoint.indicator_id == indicator.id)
     if not include_quintiles:
         query = query.filter(DataPoint.quintile.is_(None))
+    if not include_regions:
+        query = query.filter(DataPoint.region_code == "PHL")
     if year:
         query = query.filter(DataPoint.year == year)
     if region:
@@ -328,6 +335,143 @@ def get_indicator_quintiles(
         equity_ratio=equity_ratio,
         absolute_gap=absolute_gap,
     )
+
+
+@app.get("/data/{indicator_code}/regions")
+def get_indicator_regions(indicator_code: str, db: Session = Depends(get_db)):
+    """
+    One series per region for a subnational indicator, plus the national total.
+
+    Powers Module 4 (Regional Comparison): pick a metric, rank regions by the
+    latest year, or pick a region and read its trend. All years are returned so
+    the client can re-rank on any year without another round trip.
+    """
+    indicator = db.query(Indicator).filter(Indicator.code == indicator_code).first()
+    if not indicator:
+        raise HTTPException(status_code=404, detail=f"Indicator {indicator_code} not found")
+
+    points = (
+        db.query(DataPoint)
+        .filter(DataPoint.indicator_id == indicator.id)
+        .order_by(DataPoint.year)
+        .all()
+    )
+    if not points:
+        raise HTTPException(status_code=404, detail=f"No data for indicator {indicator_code}")
+
+    by_region: Dict[str, List[DataPoint]] = {}
+    for p in points:
+        by_region.setdefault(p.region_code, []).append(p)
+
+    def series(region_code: str, rows: List[DataPoint]) -> Dict[str, Any]:
+        pts = [
+            {"year": r.year, "value": float(r.value) if r.value is not None else None}
+            for r in rows
+        ]
+        return {
+            "region_code": region_code,
+            "region_name": rows[0].region.name if rows[0].region else None,
+            "island_group": rows[0].region.island_group if rows[0].region else None,
+            "latest_year": pts[-1]["year"],
+            "latest_value": pts[-1]["value"],
+            "points": pts,
+        }
+
+    # Largest region first: that is the default ranking the UI presents.
+    regions = sorted(
+        (series(code, rows) for code, rows in by_region.items() if code != "PHL"),
+        key=lambda s: (s["latest_value"] is not None, s["latest_value"] or 0),
+        reverse=True,
+    )
+
+    return {
+        "indicator": {
+            "code": indicator.code,
+            "name": indicator.name,
+            "category": indicator.category,
+            "unit": indicator.unit,
+        },
+        "years": sorted({p.year for p in points}),
+        "latest_year": max(p.year for p in points),
+        "national": series("PHL", by_region["PHL"]) if "PHL" in by_region else None,
+        "regions": regions,
+        "region_count": len(regions),
+    }
+
+
+@app.get("/regions/{region_code}/causes")
+def get_region_causes(region_code: str, year: Optional[int] = None,
+                       limit: int = 10, db: Session = Depends(get_db)):
+    """
+    The leading causes of death in one region.
+
+    Answers the Module 4 question "what is this region actually dying from?" —
+    a region's profile can diverge sharply from the national one. The cause rows
+    are mutually exclusive and sum to the region's all-cause total, so the
+    shares returned are honest shares of that total rather than shares of a
+    partial sum.
+    """
+    region = db.query(Region).filter(Region.code == region_code).first()
+    if not region:
+        raise HTTPException(status_code=404, detail=f"Region {region_code} not found")
+
+    cause_ids = [
+        i.id for i in db.query(Indicator).filter(
+            Indicator.code.like("PSA_DEATHS_CAUSE_%"),
+            Indicator.code != "PSA_DEATHS_ALL_CAUSES",
+        ).all()
+    ]
+    if not cause_ids:
+        raise HTTPException(status_code=404, detail="No cause-of-death data available")
+
+    year_rows = db.query(DataPoint).filter(
+        DataPoint.indicator_id.in_(cause_ids),
+        DataPoint.region_code == region_code,
+    ).all()
+    if not year_rows:
+        raise HTTPException(
+            status_code=404, detail=f"No cause data for region {region_code}"
+        )
+
+    years = sorted({r.year for r in year_rows})
+    year = year if year is not None else years[-1]
+
+    total = (
+        db.query(DataPoint)
+        .filter(
+            DataPoint.indicator_id == db.query(Indicator)
+                .filter(Indicator.code == "PSA_DEATHS_ALL_CAUSES")
+                .first()
+                .id,
+            DataPoint.region_code == region_code,
+            DataPoint.year == year,
+        )
+        .first()
+    )
+
+    rows = []
+    for ind in db.query(Indicator).filter(Indicator.id.in_(cause_ids)).all():
+        dp = next(
+            (r for r in year_rows if r.indicator_id == ind.id and r.year == year), None
+        )
+        if dp and dp.value is not None and total and total.value:
+            rows.append({
+                "indicator_code": ind.code,
+                "cause": ind.name.replace("Registered deaths: ", "", 1),
+                "value": float(dp.value),
+                "share": round(100 * float(dp.value) / float(total.value), 2),
+            })
+
+    rows.sort(key=lambda r: r["value"], reverse=True)
+
+    return {
+        "region_code": region.code,
+        "region_name": region.name,
+        "island_group": region.island_group,
+        "year": year,
+        "all_causes": float(total.value) if total and total.value is not None else None,
+        "causes": rows[:limit],
+    }
 
 
 @app.get("/categories", response_model=List[CategoryResponse])
