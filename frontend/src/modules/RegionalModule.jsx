@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react'
-import BarChartCard from '../components/BarChartCard'
 import TrendChart from '../components/TrendChart'
 import StatCard from '../components/StatCard'
 import MetricNote from '../components/MetricNote'
@@ -13,10 +12,10 @@ import { formatValue } from '../format'
 
 const ALL_CAUSES = 'PSA_DEATHS_ALL_CAUSES'
 
-// Axis labels for the ranking chart. Region names carry their full official
-// wording and number, which a map legend needs but a chart axis cannot fit —
-// "Bangsamoro Autonomous Region in Muslim Mindanao (BARMM)" does not fit in
-// 150px, so the axis uses this and the tooltip keeps the full name.
+// Axis labels for the ranking. Region names carry their full official wording
+// and number, which a map legend needs but a chart row cannot fit —
+// "Bangsamoro Autonomous Region in Muslim Mindanao (BARMM)" does not fit in a
+// 96px label column, so the row uses this and the title keeps the full name.
 const SHORT_LABEL = {
   '1300000000': 'NCR',
   '1400000000': 'CAR',
@@ -91,7 +90,7 @@ export default function RegionalModule() {
         if (cancelled) return
         setRanking(regions)
         setMetricInfo(info || {})
-        // Back to the latest year whenever the metric or its years change.
+        // Back to the latest year whenever the metric changes.
         setYear(null)
         // Default the detail panel to the largest region so the module is
         // never empty on first paint.
@@ -172,10 +171,15 @@ export default function RegionalModule() {
 
   const top = rankingRows[0]
   const national = ranking?.national
-  const islandGroups = [
-    ...new Set(rankingRows.map((r) => r.island_group).filter(Boolean)),
-  ]
+  // The national total must follow the year selector too — reading
+  // latest_value directly would pin the card to the latest year forever.
+  const nationalPoint = (national?.points || []).find((p) => p.year === activeYear)
+  const nationalValue = nationalPoint?.value ?? null
   const selectedMetric = metrics.find((m) => m.code === code)
+
+  // Longest bar sets the scale, so the ranking reads as a share of the worst
+  // region rather than an absolute pixel count.
+  const maxValue = top?.value || 1
 
   return (
     <div className="space-y-6">
@@ -187,19 +191,13 @@ export default function RegionalModule() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <StatCard
           label="Registered deaths, Philippines"
-          value={national?.latest_value}
+          value={nationalValue}
           unitKey="count"
           color="blue"
-          hint={national ? `${national.latest_year}` : undefined}
-        />
-        <StatCard
-          label="Regions covered"
-          value={ranking?.region_count}
-          color="purple"
-          hint={islandGroups.length ? islandGroups.join(', ') : undefined}
+          hint={activeYear != null ? `${activeYear}` : undefined}
         />
         <StatCard
           label={top ? `${top.short} deaths` : 'Largest region'}
@@ -207,12 +205,6 @@ export default function RegionalModule() {
           unitKey="count"
           color="orange"
           hint={top?.name}
-        />
-        <StatCard
-          label="Latest year"
-          value={ranking?.latest_year}
-          color="green"
-          hint={ranking ? `${ranking.years[0]}–${ranking.latest_year}` : undefined}
         />
       </div>
 
@@ -246,39 +238,69 @@ export default function RegionalModule() {
               ))}
             </select>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Region</label>
-            <select
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 max-w-xs"
-              value={selected ?? ''}
-              onChange={(e) => setSelected(e.target.value)}
-            >
-              {rankingRows.map((r) => (
-                <option key={r.code} value={r.code}>
-                  {r.name}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
 
-        <BarChartCard
-          title={`${selectedMetric?.name || 'Registered deaths'} by region`}
-          subtitle={
-            activeYear !== ranking?.latest_year
-              ? `Registered deaths, ${activeYear} — largest first`
-              : `Registered deaths, ${ranking?.latest_year} — largest first`
-          }
-          data={rankingRows}
-          dataKey="value"
-          xKey="short"
-          unitKey="count"
-          color="#7c3aed"
-          source="psa"
-          layout="horizontal"
-          height={Math.max(320, rankingRows.length * 30)}
-        />
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <h3 className="card-title">
+              {selectedMetric?.name || 'Registered deaths'} by region
+            </h3>
+            <p className="card-subtitle">
+              Registered deaths, {activeYear} — largest first
+            </p>
+          </div>
+          <span className="text-xs font-medium text-gray-400 bg-gray-100 rounded-full px-2 py-1">
+            PSA
+          </span>
+        </div>
+
+        {/* CSS bar ranking. A plain div chart rather than Recharts: region names
+            are long, the ordering must be exact, and there is no axis to
+            mis-render — the bar length is a direct percentage of the worst
+            region, so the visual ranking cannot drift from the data. */}
+        <div className="space-y-1.5">
+          {rankingRows.map((r) => {
+            const pct = r.value != null ? (r.value / maxValue) * 100 : 0
+            return (
+              <div key={r.code} className="flex items-center gap-3">
+                <div
+                  className="w-24 shrink-0 text-xs text-gray-600 text-right truncate"
+                  title={r.name}
+                >
+                  {r.short}
+                </div>
+                <div className="flex-1 h-5 bg-gray-100 rounded overflow-hidden">
+                  <div
+                    className="h-full bg-purple-500 rounded"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <div className="w-16 shrink-0 text-xs font-semibold text-gray-900 text-right tabular-nums">
+                  {formatValue(r.value, 'count')}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
         <MetricNote info={metricInfo[code]} />
+      </div>
+
+      <div className="flex items-end gap-4">
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1">Region</label>
+          <select
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 min-w-[260px]"
+            value={selected ?? ''}
+            onChange={(e) => setSelected(e.target.value)}
+          >
+            {rankingRows.map((r) => (
+              <option key={r.code} value={r.code}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -298,7 +320,6 @@ export default function RegionalModule() {
             <p className="text-gray-400">Select a region to see its trend.</p>
           </div>
         )}
-
         <div className="card">
           <h3 className="card-title">
             Leading causes in {detail?.causes?.region_name || 'this region'}
